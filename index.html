@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PC Parts Store</title>
+  <title>Online Classes</title>
 
-  <!-- Font Awesome CDN - provides icons like shopping cart -->
+  <!-- Font Awesome for cart icon -->
   <link
     rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css"
@@ -14,176 +14,218 @@
   <!-- Custom stylesheet -->
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Vue.js CDN - JavaScript framework for reactive UI -->
+  <!-- Vue.js framework -->
   <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14"></script>
 </head>
 
 <body>
-  <!-- Vue application container -->
+  <!-- Main Vue app container -->
   <div id="app">
     
-    <!-- Header section with logo and checkout button -->
+    <!-- Header with title and buttons -->
     <header>
-      <div class="header-left">
-        <!-- Store logo -->
-        <img src="images/logo1.png" alt="Store Logo" class="logo" />
-        <!-- Store name from Vue data -->
-        <h1>{{ sitename }}</h1>
+      <h1>{{ sitename }}</h1>
+      <div class="header-buttons">
+        <button @click="openSignIn" class="signin-btn">
+          <span class="fas fa-user-plus"></span> Sign In
+        </button>
+        <button @click="showCheckout">
+          <span class="fas fa-shopping-cart"></span>
+          Cart ({{ cartItemCount }})
+        </button>
       </div>
-      
-      <!-- Checkout button with cart count -->
-      <button @click="showCheckout">
-        {{ cartItemCount }}
-        <span class="fas fa-shopping-cart"></span> Checkout
-      </button>
     </header>
 
+    <!-- Sign In Modal -->
+    <div v-if="showSignIn" class="modal-overlay" @click="closeSignIn">
+      <div class="modal-content" @click.stop>
+        <h2>Sign In</h2>
+        <p>
+          <strong>Full Name:</strong>
+          <input type="text" v-model="signInName" placeholder="Enter your name" />
+        </p>
+        <p>
+          <strong>Email:</strong>
+          <input type="email" v-model="signInEmail" placeholder="Enter email" />
+        </p>
+        <p>
+          <strong>Password:</strong>
+          <input type="password" v-model="signInPassword" placeholder="Enter password" />
+        </p>
+        <button @click="handleSignIn">Create Account</button>
+        <button @click="closeSignIn" class="cancel-btn">Cancel</button>
+      </div>
+    </div>
+
     <main>
-      <!-- PRODUCT LIST PAGE - shown when showProduct is true -->
+      <!-- CLASSES LIST PAGE -->
       <div v-if="showProduct">
         
-        <!-- Loop through all products and display each in a card -->
-        <div v-for="product in sortedProducts" :key="product.id" class="product-card">
+        <!-- Search box -->
+        <input 
+          type="text" 
+          v-model="searchQuery" 
+          placeholder="Search classes..."
+          class="search-box"
+        />
+        
+        <!-- Sort dropdown -->
+        <select v-model="sortBy" class="sort-box">
+          <option value="subject">Sort by Subject</option>
+          <option value="location">Sort by Location</option>
+          <option value="availability">Sort by Availability</option>
+        </select>
+
+        <!-- Show message if no results -->
+        <p v-if="filteredProducts.length === 0" class="no-results">
+          No classes found.
+        </p>
+        
+        <!-- Loop through each class -->
+        <div class="classes-grid">
+          <div v-for="product in filteredProducts" :key="product.id" class="class-card">
           
-          <!-- Product image -->
-          <img :src="product.image" :alt="product.title" width="150" />
+          <img :src="product.image" :alt="product.title" />
           
-          <!-- Product title -->
           <h2>{{ product.title }}</h2>
           
-          <!-- Product description (v-html allows HTML formatting) -->
-          <p v-html="product.description"></p>
+          <!-- Subject badge -->
+          <span class="subject-badge">{{ product.category }}</span>
           
-          <!-- Product price with 2 decimal places -->
-          <p>Price: ${{ product.price.toFixed(2) }}</p>
+          <p>{{ product.description }}</p>
           
-          <!-- Product category badge -->
-          <p>Category: {{ product.category }}</p>
+          <p><strong>Location:</strong> {{ product.location }}</p>
+          <p><strong>Price:</strong> £{{ product.price.toFixed(2) }}</p>
 
-          <!-- Star rating display -->
+          <!-- Star rating -->
           <div class="rating">
-            <!-- Filled stars based on rating -->
             <span v-for="n in product.rating">★</span>
-            <!-- Empty stars for remaining -->
             <span v-for="n in 5 - product.rating">☆</span>
           </div>
 
-          <!-- Inventory status message -->
-          <p class="stock">
-            <!-- Show different messages based on stock level -->
+          <!-- Availability status -->
+          <p class="availability">
             <span v-if="product.availableInventory === cartCount(product.id)">
-              All out!
+              Fully Booked
             </span>
             <span v-else-if="product.availableInventory - cartCount(product.id) < 5">
-              Only {{ product.availableInventory - cartCount(product.id) }} left!
+              {{ product.availableInventory - cartCount(product.id) }} spots left
             </span>
             <span v-else>
-              Buy now!
+              {{ product.availableInventory }} spots available
             </span>
           </p>
 
-          <!-- Add to cart button (conditional rendering) -->
+          <!-- Book button -->
           <button @click="addToCart(product)" v-if="canAddToCart(product)">
-            Add to cart
+            Book Class
           </button>
-          <!-- Disabled button when out of stock -->
           <button disabled v-else>
-            Add to cart
+            Fully Booked
           </button>
+        </div>
         </div>
       </div>
 
-      <!-- CHECKOUT PAGE - shown when showProduct is false -->
+      <!-- CHECKOUT PAGE -->
       <div v-else>
-        <h2>Checkout</h2>
+        <div class="checkout-header">
+          <h2>Checkout</h2>
+          <button @click="backToClasses" class="back-btn">
+            <span class="fas fa-arrow-left"></span> Back to Classes
+          </button>
+        </div>
 
-        <!-- SHOPPING CART DISPLAY -->
-        <div class="cart-display">
-          <h3>Your Cart ({{ cart.length }} items)</h3>
+        <!-- Cart items -->
+        <div class="cart-section">
+          <h3>Your Classes</h3>
           
-          <!-- Show message if cart is empty -->
-          <div v-if="cart.length === 0" class="empty-message">
-            <p>Your cart is empty</p>
-          </div>
+          <p v-if="cart.length === 0">Your cart is empty</p>
           
-          <!-- Display cart items with quantity controls -->
-          <div v-else class="cart-items-list">
-            <div v-for="item in cartItems" :key="item.product.id" class="cart-item-row">
+          <div v-else>
+            <!-- Each cart item -->
+            <div v-for="item in cartItems" :key="item.product.id" class="cart-row">
               
-              <!-- Product image thumbnail -->
-              <img :src="item.product.image" :alt="item.product.title" class="cart-thumbnail" />
-              
-              <!-- Product details -->
-              <div class="cart-item-details">
+              <div class="cart-info">
                 <strong>{{ item.product.title }}</strong>
-                <p>${{ item.product.price.toFixed(2) }} each</p>
+                <p>{{ item.product.category }} - {{ item.product.location }}</p>
+                <p>£{{ item.product.price.toFixed(2) }} each</p>
               </div>
               
-              <!-- Quantity controls -->
-              <div class="quantity-controls">
-                <!-- Decrease quantity button -->
-                <button @click="removeFromCart(item.product.id)" class="qty-btn">-</button>
-                <span class="quantity">{{ item.quantity }}</span>
-                <!-- Increase quantity button -->
-                <button @click="addToCart(item.product)" 
-                        v-if="canAddToCart(item.product)" 
-                        class="qty-btn">+</button>
-                <button disabled v-else class="qty-btn">+</button>
+              <!-- Quantity buttons -->
+              <div class="cart-quantity">
+                <button @click="removeFromCart(item.product.id)">-</button>
+                <span>{{ item.quantity }}</span>
+                <button @click="addToCart(item.product)" v-if="canAddToCart(item.product)">+</button>
+                <button disabled v-else>+</button>
               </div>
               
-              <!-- Subtotal for this product -->
-              <div class="cart-item-subtotal">
-                ${{ item.subtotal }}
+              <div class="cart-price">
+                £{{ item.subtotal }}
               </div>
               
-              <!-- Remove all button -->
               <button @click="removeAllFromCart(item.product.id)" class="remove-btn">
-                Remove All
+                Remove
               </button>
             </div>
             
-            <!-- Cart total -->
+            <!-- Total price -->
             <div class="cart-total">
-              <strong>Total: ${{ getCartTotal() }}</strong>
+              Total: £{{ getCartTotal() }}
             </div>
           </div>
         </div>
 
-        <!-- CUSTOMER DETAILS FORM -->
-        <div class="customer-form">
-          <h3>Customer Details</h3>
+        <!-- Customer form -->
+        <div class="form-section">
+          <h3>Your Details</h3>
           
-          <!-- First Name input -->
           <p>
             <strong>First Name:</strong>
-            <input v-model.trim="order.firstName" placeholder="Enter first name" />
+            <input v-model.trim="order.firstName" placeholder="First name" />
           </p>
 
-          <!-- Last Name input -->
           <p>
             <strong>Last Name:</strong>
-            <input v-model.trim="order.lastName" placeholder="Enter last name" />
+            <input v-model.trim="order.lastName" placeholder="Last name" />
           </p>
 
-          <!-- Ph No input -->
           <p>
-            <strong>Ph No:</strong>
-            <input v-model="order.phno" placeholder="Enter Phone No" />
+            <strong>Address:</strong>
+            <input v-model="order.address" placeholder="Address" />
           </p>
 
+          <p>
+            <strong>City:</strong>
+            <input v-model="order.city" placeholder="City" />
+          </p>
 
-          
+          <p>
+            <strong>County:</strong>
+            <select v-model="order.county">
+              <option disabled value="">Select County</option>
+              <option v-for="(county, key) in counties" v-bind:value="county">
+                {{ key }}
+              </option>
+            </select>
+          </p>
 
-          <!-- Submit order button -->
+          <p>
+            <strong>Postcode:</strong>
+            <input v-model="order.zip" placeholder="Postcode" />
+          </p>
+
           <button v-on:click="submitForm">Place Order</button>
         </div>
 
-        <!-- ORDER INFORMATION PREVIEW - Updates in real-time as user types -->
-        <div class="order-preview">
-          <h2>Order Information</h2>
-          <p>First Name: {{ order.firstName }}</p>
-          <p>Last Name: {{ order.lastName }}</p>
-          <p>Ph No: {{ order.phno }}</p>
+        <!-- Order summary -->
+        <div class="order-summary">
+          <h3>Order Summary</h3>
+          <p>Name: {{ order.firstName }} {{ order.lastName }}</p>
+          <p>Address: {{ order.address }}</p>
+          <p>City: {{ order.city }}</p>
+          <p>County: {{ order.county }}</p>
+          <p>Postcode: {{ order.zip }}</p>
         </div>
 
       </div>
@@ -191,7 +233,7 @@
     </main>
   </div>
 
-  <!-- External JavaScript files -->
+  <!-- Load JavaScript files -->
   <script src="products.js"></script>
   <script src="app.js"></script>
 </body>
