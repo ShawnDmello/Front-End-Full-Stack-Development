@@ -1,0 +1,293 @@
+/* Global reset and body styling */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f0f0f0;
+  margin: 0;
+  padding: 20px;
+}
+
+/* Header section styling */
+header {
+  background-color: #333;
+  color: white;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Header left section (logo + title) */
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+/* Store logo styling */
+.logo {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  background-color: rgb(19, 18, 18);
+  padding: 10px;
+  border-radius: 0px;
+}
+
+/* Main heading in header */
+header h1 {
+  font-size: 28px;
+  margin: 0;
+}
+
+/* Checkout button in header */
+header button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+header button:hover {
+  background-color: #45a049;
+}
+
+/* Main content area */
+main {
+  max-width: 1000px;
+  margin: 20px auto;
+  background: white;
+  padding: 30px;
+}
+
+/* Page title styling */
+.page-title {
+  color: #333;
+  font-size: 24px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #4CAF50;
+  padding-bottom: 10px;
+}
+
+/* Individual product card */
+.product-card {
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  margin-bottom: 15px;
+  padding: 15px;
+  display: flex;
+  gap: 15px;
+}
+
+/* Product images in cards */
+.product-card img {
+  width: 150px;
+  height: 120px;
+}
+
+/* Star rating styling */
+.rating {
+  color: #ffa500;
+  font-size: 18px;
+}
+
+/* Stock status message */
+.stock {
+  background-color: #fff3cd;
+  padding: 5px 10px;
+  display: inline-block;
+  margin: 10px 0;
+  color: #856404;
+}
+
+/* General button styling */
+button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 25px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+/* Disabled button state */
+button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* === CHECKOUT PAGE STYLES === */
+
+/* Cart display container */
+.cart-display {
+  background-color: #f9f9f9;
+  padding: 20px;
+  margin-bottom: 30px;
+  border: 1px solid #ddd;
+}
+
+.cart-display h3 {
+  margin-top: 0;
+  color: #333;
+  border-bottom: 2px solid #4CAF50;
+  padding-bottom: 10px;
+}
+
+/* Empty cart message */
+.empty-message {
+  text-align: center;
+  padding: 30px;
+  color: #666;
+}
+
+/* Individual cart item row */
+.cart-item-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  border-bottom: 1px solid #ddd;
+  background-color: white;
+  margin-bottom: 10px;
+}
+
+/* Cart item thumbnail image */
+.cart-thumbnail {
+  width: 60px;
+  height: 50px;
+  object-fit: cover;
+}
+
+/* Cart item text details */
+.cart-item-details {
+  flex: 1;
+}
+
+.cart-item-details strong {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.cart-item-details p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+/* Quantity controls container */
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Plus/minus buttons for quantity */
+.qty-btn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  font-size: 18px;
+  background-color: #4CAF50;
+}
+
+.qty-btn:hover {
+  background-color: #45a049;
+}
+
+/* Quantity number display */
+.quantity {
+  font-weight: bold;
+  min-width: 30px;
+  text-align: center;
+}
+
+/* Subtotal for each item */
+.cart-item-subtotal {
+  font-weight: bold;
+  color: #4CAF50;
+  min-width: 80px;
+  text-align: right;
+}
+
+/* Remove all button */
+.remove-btn {
+  background-color: #f44336;
+  padding: 8px 15px;
+}
+
+.remove-btn:hover {
+  background-color: #d32f2f;
+}
+
+/* Cart total display */
+.cart-total {
+  text-align: right;
+  padding: 20px;
+  font-size: 20px;
+  background-color: #e8f5e9;
+  margin-top: 15px;
+}
+
+/* Customer form section */
+.customer-form {
+  background-color: #f9f9f9;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid #ddd;
+}
+
+.customer-form h3 {
+  margin-top: 0;
+  color: #333;
+  border-bottom: 2px solid #4CAF50;
+  padding-bottom: 10px;
+}
+
+/* Form paragraph containers */
+.customer-form p {
+  margin-bottom: 15px;
+}
+
+.customer-form strong {
+  display: block;
+  margin-bottom: 5px;
+}
+
+/* Form input fields */
+input, select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: #4CAF50;
+}
+
+/* Order preview section */
+.order-preview {
+  background-color: #e8f5e9;
+  padding: 20px;
+  border: 2px solid #4CAF50;
+  margin-top: 20px;
+}
+
+.order-preview h2 {
+  color: #2e7d32;
+  margin-top: 0;
+  border-bottom: 2px solid #4CAF50;
+  padding-bottom: 10px;
+}
+
+.order-preview p {
+  margin: 8px 0;
+  color: #333;
+}
