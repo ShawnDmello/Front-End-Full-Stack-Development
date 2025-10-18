@@ -5,17 +5,16 @@ var webstore = new Vue({
   // Data - stores all information
   data: {
     sitename: 'Online Classes',
+    isSignedIn: true, // Start as signed in (no sign in page on reload)
     showProduct: true, // true = show classes, false = show checkout
-    showSignIn: false, // true = show sign in modal
     products: products, // Array from products.js
     cart: [], // Stores class IDs when booked
     searchQuery: '', // What user types in search box
     sortBy: 'subject', // How to sort: subject, location, or availability
     
     // Sign in credentials
-    signInEmail: '',
+    signInUsername: '',
     signInPassword: '',
-    signInName: '',
     
     // Customer information
     order: {
@@ -75,26 +74,13 @@ var webstore = new Vue({
       this.showProduct = true;
     },
     
-    // Show sign in modal
-    openSignIn() {
-      this.showSignIn = true;
-    },
-    
-    // Close sign in modal
-    closeSignIn() {
-      this.showSignIn = false;
-      this.signInEmail = '';
-      this.signInPassword = '';
-      this.signInName = '';
-    },
-    
     // Handle sign in
     handleSignIn() {
-      if (this.signInName && this.signInEmail && this.signInPassword) {
-        alert(`Account created for ${this.signInName}!`);
-        this.closeSignIn();
+      if (this.signInUsername === 'sd' && this.signInPassword === '123') {
+        this.isSignedIn = true;
+        alert('Welcome!');
       } else {
-        alert('Please fill in all fields!');
+        alert('Invalid username or password!');
       }
     },
     
