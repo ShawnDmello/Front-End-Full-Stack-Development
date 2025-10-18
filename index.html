@@ -22,40 +22,39 @@
   <!-- Main Vue app container -->
   <div id="app">
     
+    <!-- SIGN IN PAGE - Shows first when app loads -->
+    <div v-if="!isSignedIn" class="signin-page">
+      <div class="signin-box">
+        <h1>{{ sitename }}</h1>
+        <h2>Sign In</h2>
+        
+        <p>
+          <strong>Username:</strong>
+          <input type="text" v-model="signInUsername" placeholder="Enter username" />
+        </p>
+        
+        <p>
+          <strong>Password:</strong>
+          <input type="password" v-model="signInPassword" placeholder="Enter password" />
+        </p>
+        
+        <button @click="handleSignIn" class="signin-btn-large">Sign In</button>
+      </div>
+    </div>
+
+    <!-- MAIN APP - Shows after sign in -->
+    <div v-else>
+    
     <!-- Header with title and buttons -->
     <header>
       <h1>{{ sitename }}</h1>
       <div class="header-buttons">
-        <button @click="openSignIn" class="signin-btn">
-          <span class="fas fa-user-plus"></span> Sign In
-        </button>
         <button @click="showCheckout">
           <span class="fas fa-shopping-cart"></span>
           Cart ({{ cartItemCount }})
         </button>
       </div>
     </header>
-
-    <!-- Sign In Modal -->
-    <div v-if="showSignIn" class="modal-overlay" @click="closeSignIn">
-      <div class="modal-content" @click.stop>
-        <h2>Sign In</h2>
-        <p>
-          <strong>Full Name:</strong>
-          <input type="text" v-model="signInName" placeholder="Enter your name" />
-        </p>
-        <p>
-          <strong>Email:</strong>
-          <input type="email" v-model="signInEmail" placeholder="Enter email" />
-        </p>
-        <p>
-          <strong>Password:</strong>
-          <input type="password" v-model="signInPassword" placeholder="Enter password" />
-        </p>
-        <button @click="handleSignIn">Create Account</button>
-        <button @click="closeSignIn" class="cancel-btn">Cancel</button>
-      </div>
-    </div>
 
     <main>
       <!-- CLASSES LIST PAGE -->
@@ -69,12 +68,18 @@
           class="search-box"
         />
         
-        <!-- Sort dropdown -->
-        <select v-model="sortBy" class="sort-box">
-          <option value="subject">Sort by Subject</option>
-          <option value="location">Sort by Location</option>
-          <option value="availability">Sort by Availability</option>
-        </select>
+        <!-- Sort buttons -->
+        <div class="sort-buttons">
+          <button @click="sortBy = 'subject'" :class="{ active: sortBy === 'subject' }">
+            Sort by Subject
+          </button>
+          <button @click="sortBy = 'location'" :class="{ active: sortBy === 'location' }">
+            Sort by Location
+          </button>
+          <button @click="sortBy = 'availability'" :class="{ active: sortBy === 'availability' }">
+            Sort by Availability
+          </button>
+        </div>
 
         <!-- Show message if no results -->
         <p v-if="filteredProducts.length === 0" class="no-results">
@@ -231,6 +236,7 @@
       </div>
 
     </main>
+    </div>
   </div>
 
   <!-- Load JavaScript files -->
