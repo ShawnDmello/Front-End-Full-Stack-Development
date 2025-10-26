@@ -160,10 +160,9 @@ var webstore = new Vue({
       } else if (this.sortBy === 'availability') {
         filtered = filtered.sort((a, b) => b.availableInventory - a.availableInventory);
       }
-      else if (this.sortBy === 'price') {
+       else if (this.sortBy === 'price') {
         filtered = filtered.sort((a, b) => a.price - b.price); // ascending order
     }
-      
       return filtered;
     },
     
@@ -195,5 +194,4 @@ var webstore = new Vue({
       return items;
     }
   }
-
 });
