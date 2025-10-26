@@ -87,6 +87,16 @@
             <input type="radio" value="availability" v-model="sortBy" />
             Availability
           </label>
+          
+          <strong style="margin-top: 15px;">Order</strong>
+          <label>
+            <input type="radio" value="ascending" v-model="sortOrder" />
+            Ascending
+          </label>
+          <label>
+            <input type="radio" value="descending" v-model="sortOrder" />
+            Descending
+          </label>
         </div>
 
         <!-- Show message if no results -->
