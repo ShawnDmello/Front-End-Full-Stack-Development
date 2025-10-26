@@ -68,17 +68,25 @@
           class="search-box"
         />
         
-        <!-- Sort buttons -->
-        <div class="sort-buttons">
-          <button @click="sortBy = 'subject'" :class="{ active: sortBy === 'subject' }">
-            Sort by Subject
-          </button>
-          <button @click="sortBy = 'location'" :class="{ active: sortBy === 'location' }">
-            Sort by Location
-          </button>
-          <button @click="sortBy = 'availability'" :class="{ active: sortBy === 'availability' }">
-            Sort by Availability
-          </button>
+        <!-- Sort options with radio buttons -->
+        <div class="sort-section">
+          <strong>Sort by</strong>
+          <label>
+            <input type="radio" value="subject" v-model="sortBy" />
+            Subject
+          </label>
+          <label>
+            <input type="radio" value="location" v-model="sortBy" />
+            Location
+          </label>
+          <label>
+            <input type="radio" value="price" v-model="sortBy" />
+            Price
+          </label>
+          <label>
+            <input type="radio" value="availability" v-model="sortBy" />
+            Availability
+          </label>
         </div>
 
         <!-- Show message if no results -->
