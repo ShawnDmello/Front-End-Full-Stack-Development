@@ -140,31 +140,44 @@ var webstore = new Vue({
     
     // Filter and sort classes
     filteredProducts() {
-      let filtered = this.products;
-      
-      // Search filter
-      if (this.searchQuery) {
-        const query = this.searchQuery.toLowerCase();
-        filtered = filtered.filter(product => {
-          return product.title.toLowerCase().includes(query) ||
-                 product.category.toLowerCase().includes(query) ||
-                 product.location.toLowerCase().includes(query);
-        });
-      }
-      
-      // Sort
-      if (this.sortBy === 'subject') {
-        filtered = filtered.sort((a, b) => a.category.localeCompare(b.category));
-      } else if (this.sortBy === 'location') {
-        filtered = filtered.sort((a, b) => a.location.localeCompare(b.location));
-      } else if (this.sortBy === 'availability') {
-        filtered = filtered.sort((a, b) => b.availableInventory - a.availableInventory);
-      }
-       else if (this.sortBy === 'price') {
-        filtered = filtered.sort((a, b) => a.price - b.price); // ascending order
-    }
-      return filtered;
-    },
+  let filtered = this.products;
+
+  // Search filter
+  if (this.searchQuery) {
+    const query = this.searchQuery.toLowerCase();
+    filtered = filtered.filter(product => {
+      return (
+        product.title.toLowerCase().includes(query) ||
+        product.category.toLowerCase().includes(query) ||
+        product.location.toLowerCase().includes(query)
+      );
+    });
+  }
+
+  // Sort logic with ascending/descending
+  const isAsc = this.sortOrder === 'ascending';
+
+  if (this.sortBy === 'subject') {
+    filtered = filtered.sort((a, b) =>
+      isAsc ? a.category.localeCompare(b.category) : b.category.localeCompare(a.category)
+    );
+  } else if (this.sortBy === 'location') {
+    filtered = filtered.sort((a, b) =>
+      isAsc ? a.location.localeCompare(b.location) : b.location.localeCompare(a.location)
+    );
+  } else if (this.sortBy === 'availability') {
+    filtered = filtered.sort((a, b) =>
+      isAsc ? a.availableInventory - b.availableInventory : b.availableInventory - a.availableInventory
+    );
+  } else if (this.sortBy === 'price') {
+    filtered = filtered.sort((a, b) =>
+      isAsc ? a.price - b.price : b.price - a.price
+    );
+  }
+
+  return filtered;
+},
+,
     
     // Group cart items by class
     cartItems() {
@@ -195,3 +208,4 @@ var webstore = new Vue({
     }
   }
 });
+
