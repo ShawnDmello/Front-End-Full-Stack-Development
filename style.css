@@ -80,25 +80,31 @@ main {
   font-size: 16px;
 }
 
-/* Sort buttons */
-.sort-buttons {
-  display: flex;
-  gap: 10px;
+/* Sort section with radio buttons */
+.sort-section {
+  background-color: white;
+  padding: 15px;
   margin-bottom: 20px;
+  border: 1px solid #ccc;
 }
 
-.sort-buttons button {
-  padding: 10px 15px;
-  background-color: #ddd;
-  color: #333;
-  border: none;
+.sort-section strong {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+.sort-section label {
+  display: block;
+  margin-bottom: 8px;
   cursor: pointer;
-  flex: 1;
+  font-size: 15px;
 }
 
-.sort-buttons button.active {
-  background-color: #3498db;
-  color: white;
+.sort-section input[type="radio"] {
+  margin-right: 8px;
+  width: auto;
+  cursor: pointer;
 }
 
 /* No results */
