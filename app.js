@@ -10,7 +10,8 @@ var webstore = new Vue({
     products: products, // Array from products.js
     cart: [], // Stores class IDs when booked
     searchQuery: '', // What user types in search box
-    sortBy: 'subject', // How to sort: subject, location, or availability
+    sortBy: 'subject', // How to sort: subject, location, price, availability
+    sortOrder: 'ascending', // ascending or descending
     
     // Sign in credentials
     signInUsername: '',
