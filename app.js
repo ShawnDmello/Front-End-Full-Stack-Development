@@ -177,7 +177,7 @@ var webstore = new Vue({
 
   return filtered;
 },
-,
+
     
     // Group cart items by class
     cartItems() {
@@ -208,4 +208,3 @@ var webstore = new Vue({
     }
   }
 });
-
