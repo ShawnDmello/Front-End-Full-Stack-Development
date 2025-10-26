@@ -131,7 +131,7 @@
             <span v-if="product.availableInventory === cartCount(product.id)">
               Fully Booked
             </span>
-            <span v-else-if="product.availableInventory - cartCount(product.id) < 5">
+            <span v-else-if="product.availableInventory - cartCount(product.id) < 20">
               {{ product.availableInventory - cartCount(product.id) }} spots left
             </span>
             <span v-else>
@@ -261,4 +261,5 @@
   <script src="products.js"></script>
   <script src="app.js"></script>
 </body>
+
 </html>
