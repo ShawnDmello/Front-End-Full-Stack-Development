@@ -5,13 +5,13 @@ var webstore = new Vue({
   // Data - stores all information
   data: {
     sitename: 'Online Classes',
-    isSignedIn: true, // Start as signed in (no sign in page on reload)
-    showProduct: true, // true = show classes, false = show checkout
-    products: products, // Array from products.js
-    cart: [], // Stores class IDs when booked
-    searchQuery: '', // What user types in search box
-    sortBy: 'subject', // How to sort: subject, location, price, availability
-    sortOrder: 'ascending', // ascending or descending
+    isSignedIn: true, 
+    showProduct: true,
+    products: [], // Loaded from backend API
+    cart: [],
+    searchQuery: '',
+    sortBy: 'subject',
+    sortOrder: 'ascending',
     
     // Sign in credentials
     signInUsername: '',
@@ -44,24 +44,30 @@ var webstore = new Vue({
     }
   },
 
+  // 🔥 Fetch classes from LIVE backend
+  mounted() {
+    fetch("https://backend-online-classes.onrender.com/api/classes")
+      .then(res => res.json())
+      .then(data => {
+        this.products = data;
+      })
+      .catch(err => console.error("Error fetching classes:", err));
+  },
+
   // Methods - functions
   methods: {
-    // Add class to cart
     addToCart(product) {
       this.cart.push(product.id);
     },
     
-    // Count how many of same class in cart
     cartCount(id) {
       return this.cart.filter(item => item === id).length;
     },
     
-    // Check if class can be booked (spots available)
     canAddToCart(product) {
       return product.availableInventory > this.cartCount(product.id);
     },
     
-    // Switch between classes page and checkout page
     showCheckout() {
       if (!this.showProduct || this.cart.length > 0) {
         this.showProduct = !this.showProduct;
@@ -70,12 +76,10 @@ var webstore = new Vue({
       }
     },
     
-    // Go back to classes page
     backToClasses() {
       this.showProduct = true;
     },
     
-    // Handle sign in
     handleSignIn() {
       if (this.signInUsername === 'sd' && this.signInPassword === '123') {
         this.isSignedIn = true;
@@ -85,7 +89,6 @@ var webstore = new Vue({
       }
     },
     
-    // Remove one class from cart
     removeFromCart(productId) {
       const index = this.cart.indexOf(productId);
       if (index > -1) {
@@ -93,12 +96,10 @@ var webstore = new Vue({
       }
     },
     
-    // Remove all of same class from cart
     removeAllFromCart(productId) {
       this.cart = this.cart.filter(id => id !== productId);
     },
     
-    // Submit order
     submitForm() {
       if (this.cart.length === 0) {
         alert('Your cart is empty!');
@@ -113,12 +114,10 @@ var webstore = new Vue({
       }
     },
     
-    // Find class by ID
     getProduct(id) {
       return this.products.find(p => p.id === id);
     },
     
-    // Calculate total price
     getCartTotal() {
       let total = 0;
       this.cart.forEach(productId => {
@@ -133,57 +132,50 @@ var webstore = new Vue({
 
   // Computed - values calculated automatically
   computed: {
-    // Count items in cart
     cartItemCount() {
       return this.cart.length || 0;
     },
     
-    // Filter and sort classes
     filteredProducts() {
-  let filtered = this.products;
+      let filtered = this.products;
 
-  // Search filter
-  if (this.searchQuery) {
-    const query = this.searchQuery.toLowerCase();
-    filtered = filtered.filter(product => {
-      return (
-        product.title.toLowerCase().includes(query) ||
-        product.category.toLowerCase().includes(query) ||
-        product.location.toLowerCase().includes(query)
-      );
-    });
-  }
+      if (this.searchQuery) {
+        const query = this.searchQuery.toLowerCase();
+        filtered = filtered.filter(product => {
+          return (
+            product.title.toLowerCase().includes(query) ||
+            product.category.toLowerCase().includes(query) ||
+            product.location.toLowerCase().includes(query)
+          );
+        });
+      }
 
-  // Sort logic with ascending/descending
-  const isAsc = this.sortOrder === 'ascending';
+      const isAsc = this.sortOrder === 'ascending';
 
-  if (this.sortBy === 'subject') {
-    filtered = filtered.sort((a, b) =>
-      isAsc ? a.category.localeCompare(b.category) : b.category.localeCompare(a.category)
-    );
-  } else if (this.sortBy === 'location') {
-    filtered = filtered.sort((a, b) =>
-      isAsc ? a.location.localeCompare(b.location) : b.location.localeCompare(a.location)
-    );
-  } else if (this.sortBy === 'availability') {
-    filtered = filtered.sort((a, b) =>
-      isAsc ? a.availableInventory - b.availableInventory : b.availableInventory - a.availableInventory
-    );
-  } else if (this.sortBy === 'price') {
-    filtered = filtered.sort((a, b) =>
-      isAsc ? a.price - b.price : b.price - a.price
-    );
-  }
+      if (this.sortBy === 'subject') {
+        filtered = filtered.sort((a, b) =>
+          isAsc ? a.category.localeCompare(b.category) : b.category.localeCompare(a.category)
+        );
+      } else if (this.sortBy === 'location') {
+        filtered = filtered.sort((a, b) =>
+          isAsc ? a.location.localeCompare(b.location) : b.location.localeCompare(a.location)
+        );
+      } else if (this.sortBy === 'availability') {
+        filtered = filtered.sort((a, b) =>
+          isAsc ? a.availableInventory - b.availableInventory : b.availableInventory - a.availableInventory
+        );
+      } else if (this.sortBy === 'price') {
+        filtered = filtered.sort((a, b) =>
+          isAsc ? a.price - b.price : b.price - a.price
+        );
+      }
 
-  return filtered;
-},
+      return filtered;
+    },
 
-    
-    // Group cart items by class
     cartItems() {
       const itemMap = {};
       
-      // Count each class
       this.cart.forEach(id => {
         if (itemMap[id]) {
           itemMap[id]++;
@@ -192,7 +184,6 @@ var webstore = new Vue({
         }
       });
       
-      // Create array with details
       const items = [];
       for (let id in itemMap) {
         const product = this.getProduct(parseInt(id));
