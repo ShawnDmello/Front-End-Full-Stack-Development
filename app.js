@@ -258,15 +258,15 @@ var webstore = new Vue({
         return response.json();
       })
       .then(data => {
-        // Map backend lessons into the structure used by the frontend
+        // Map backend lessons (your JSON already uses availableInventory)
         this.products = data.map((lesson, index) => ({
-          id: index + 1,             // local numeric id for v-for key only
-          backendId: lesson._id,     // real MongoDB id for orders
-          title: lesson.subject || lesson.title || "Class",
+          id: index + 1,                 // local numeric id for v-for key only
+          backendId: lesson._id,         // real MongoDB id for orders
+          title: lesson.title || lesson.subject || "Class",
           description: lesson.description || "",
           price: lesson.price || 0,
           image: lesson.image || "images/maths.jpg",
-          availableInventory: lesson.spaces ?? 0,
+          availableInventory: lesson.availableInventory ?? 0,
           rating: lesson.rating || 4,
           category: lesson.category || lesson.subject || "General",
           location: lesson.location || "Online"
