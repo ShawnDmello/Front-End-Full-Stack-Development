@@ -128,6 +128,8 @@ var webstore = new Vue({
         spaces: spaces
       };
 
+      console.log("Sending order body:", body);
+
       fetch("https://backend-online-classes.onrender.com/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -269,6 +271,7 @@ var webstore = new Vue({
           category: lesson.category || lesson.subject || "General",
           location: lesson.location || "Online"
         }));
+        console.log("Loaded products from backend:", this.products);
       })
       .catch(error => {
         console.error("Error loading classes:", error);
