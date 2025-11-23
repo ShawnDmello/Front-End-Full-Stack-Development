@@ -128,11 +128,11 @@
 
           <!-- Availability status -->
           <p class="availability">
-            <span v-if="product.availableInventory === cartCount(product.id)">
+            <span v-if="product.availableInventory === cartCount(product.backendId)">
               Fully Booked
             </span>
-            <span v-else-if="product.availableInventory - cartCount(product.id) < 20">
-              {{ product.availableInventory - cartCount(product.id) }} spots left
+            <span v-else-if="product.availableInventory - cartCount(product.backendId) < 20">
+              {{ product.availableInventory - cartCount(product.backendId) }} spots left
             </span>
             <span v-else>
               {{ product.availableInventory }} spots available
@@ -177,7 +177,7 @@
               
               <!-- Quantity buttons -->
               <div class="cart-quantity">
-                <button @click="removeFromCart(item.product.id)">-</button>
+                <button @click="removeFromCart(item.product.backendId)">-</button>
                 <span>{{ item.quantity }}</span>
                 <button @click="addToCart(item.product)" v-if="canAddToCart(item.product)">+</button>
                 <button disabled v-else>+</button>
@@ -187,7 +187,7 @@
                 £{{ item.subtotal }}
               </div>
               
-              <button @click="removeAllFromCart(item.product.id)" class="remove-btn">
+              <button @click="removeAllFromCart(item.product.backendId)" class="remove-btn">
                 Remove
               </button>
             </div>
@@ -258,7 +258,7 @@
   </div>
 
   <!-- Load JavaScript files -->
-  <script src="products.js"></script>
+  <script src="products.js"></script> <!-- kept for Option 2, but not used -->
   <script src="app.js"></script>
 </body>
 </html>
