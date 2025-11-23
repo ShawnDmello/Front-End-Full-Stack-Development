@@ -126,7 +126,7 @@
             <span v-for="n in 5 - product.rating">☆</span>
           </div>
 
-          <!-- Availability status -->
+          <!-- Availability status (uses backendId) -->
           <p class="availability">
             <span v-if="product.availableInventory === cartCount(product.backendId)">
               Fully Booked
@@ -258,7 +258,7 @@
   </div>
 
   <!-- Load JavaScript files -->
-  <script src="products.js"></script> <!-- kept for Option 2, but not used -->
+  <script src="products.js"></script> <!-- kept (Option 2) but not used -->
   <script src="app.js"></script>
 </body>
 </html>
