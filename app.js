@@ -5,13 +5,16 @@ var webstore = new Vue({
   // Data - stores all information
   data: {
     sitename: 'Online Classes',
-    isSignedIn: true, 
-    showProduct: true,
-    products: [], // Loaded from backend API
-    cart: [],
-    searchQuery: '',
-    sortBy: 'subject',
-    sortOrder: 'ascending',
+    isSignedIn: true, // Start as signed in (no sign in page on reload)
+    showProduct: true, // true = show classes, false = show checkout
+
+    // products: products, // OLD: local array from products.js
+    products: [], // NEW: will be loaded from backend
+
+    cart: [], // Stores backend class IDs (_id) when booked
+    searchQuery: '', // What user types in search box
+    sortBy: 'subject', // subject, location, price, availability
+    sortOrder: 'ascending', // ascending or descending
     
     // Sign in credentials
     signInUsername: '',
@@ -44,30 +47,24 @@ var webstore = new Vue({
     }
   },
 
-  // 🔥 Fetch classes from LIVE backend
-  mounted() {
-    fetch("https://backend-online-classes.onrender.com/api/classes")
-      .then(res => res.json())
-      .then(data => {
-        this.products = data;
-      })
-      .catch(err => console.error("Error fetching classes:", err));
-  },
-
   // Methods - functions
   methods: {
+    // Add class to cart (store backendId)
     addToCart(product) {
-      this.cart.push(product.id);
+      this.cart.push(product.backendId);
     },
     
-    cartCount(id) {
-      return this.cart.filter(item => item === id).length;
+    // Count how many of same class in cart
+    cartCount(backendId) {
+      return this.cart.filter(item => item === backendId).length;
     },
     
+    // Check if class can be booked (spots available)
     canAddToCart(product) {
-      return product.availableInventory > this.cartCount(product.id);
+      return product.availableInventory > this.cartCount(product.backendId);
     },
     
+    // Switch between classes page and checkout page
     showCheckout() {
       if (!this.showProduct || this.cart.length > 0) {
         this.showProduct = !this.showProduct;
@@ -76,10 +73,12 @@ var webstore = new Vue({
       }
     },
     
+    // Go back to classes page
     backToClasses() {
       this.showProduct = true;
     },
     
+    // Handle sign in
     handleSignIn() {
       if (this.signInUsername === 'sd' && this.signInPassword === '123') {
         this.isSignedIn = true;
@@ -89,39 +88,80 @@ var webstore = new Vue({
       }
     },
     
-    removeFromCart(productId) {
-      const index = this.cart.indexOf(productId);
+    // Remove one class from cart (by backendId)
+    removeFromCart(productBackendId) {
+      const index = this.cart.indexOf(productBackendId);
       if (index > -1) {
         this.cart.splice(index, 1);
       }
     },
     
-    removeAllFromCart(productId) {
-      this.cart = this.cart.filter(id => id !== productId);
+    // Remove all of same class from cart (by backendId)
+    removeAllFromCart(productBackendId) {
+      this.cart = this.cart.filter(id => id !== productBackendId);
     },
     
+    // Submit order -> POST to backend
     submitForm() {
       if (this.cart.length === 0) {
         alert('Your cart is empty!');
         return;
       }
-      if (this.order.firstName && this.order.lastName) {
-        alert(`Order placed by ${this.order.firstName} ${this.order.lastName}!`);
-        this.cart = [];
-        this.showProduct = true;
-      } else {
+      if (!(this.order.firstName && this.order.lastName)) {
         alert('Please enter your name!');
+        return;
       }
+
+      const fullName = `${this.order.firstName} ${this.order.lastName}`.trim();
+      // For now, use postcode as phone; you can add a dedicated phone input later
+      const phone = this.order.zip || "0000000000";
+
+      // Cart already holds backend IDs
+      const lessonIDs = this.cart.slice(); // clone
+      // 1 space per entry
+      const spaces = this.cart.map(() => 1);
+
+      const body = {
+        name: fullName,
+        phone: phone,
+        lessonIDs: lessonIDs,
+        spaces: spaces
+      };
+
+      fetch("https://backend-online-classes.onrender.com/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      })
+        .then(response =>
+          response.json().then(data => ({ ok: response.ok, data }))
+        )
+        .then(({ ok, data }) => {
+          console.log("Order response:", data);
+          if (!ok) {
+            alert(`Order failed: ${data.error || 'Unknown error'}`);
+            return;
+          }
+          alert(`Order placed by ${fullName}!`);
+          this.cart = [];
+          this.showProduct = true;
+        })
+        .catch(error => {
+          console.error("Order error:", error);
+          alert("Could not submit order. Please try again.");
+        });
     },
     
-    getProduct(id) {
-      return this.products.find(p => p.id === id);
+    // Find class by backend ID
+    getProduct(backendId) {
+      return this.products.find(p => p.backendId === backendId);
     },
     
+    // Calculate total price
     getCartTotal() {
       let total = 0;
-      this.cart.forEach(productId => {
-        const product = this.getProduct(productId);
+      this.cart.forEach(productBackendId => {
+        const product = this.getProduct(productBackendId);
         if (product) {
           total += product.price;
         }
@@ -132,13 +172,16 @@ var webstore = new Vue({
 
   // Computed - values calculated automatically
   computed: {
+    // Count items in cart
     cartItemCount() {
       return this.cart.length || 0;
     },
     
+    // Filter and sort classes
     filteredProducts() {
       let filtered = this.products;
 
+      // Search filter
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
         filtered = filtered.filter(product => {
@@ -150,22 +193,23 @@ var webstore = new Vue({
         });
       }
 
+      // Sort logic with ascending/descending
       const isAsc = this.sortOrder === 'ascending';
 
       if (this.sortBy === 'subject') {
-        filtered = filtered.sort((a, b) =>
+        filtered = filtered.slice().sort((a, b) =>
           isAsc ? a.category.localeCompare(b.category) : b.category.localeCompare(a.category)
         );
       } else if (this.sortBy === 'location') {
-        filtered = filtered.sort((a, b) =>
+        filtered = filtered.slice().sort((a, b) =>
           isAsc ? a.location.localeCompare(b.location) : b.location.localeCompare(a.location)
         );
       } else if (this.sortBy === 'availability') {
-        filtered = filtered.sort((a, b) =>
+        filtered = filtered.slice().sort((a, b) =>
           isAsc ? a.availableInventory - b.availableInventory : b.availableInventory - a.availableInventory
         );
       } else if (this.sortBy === 'price') {
-        filtered = filtered.sort((a, b) =>
+        filtered = filtered.slice().sort((a, b) =>
           isAsc ? a.price - b.price : b.price - a.price
         );
       }
@@ -173,9 +217,11 @@ var webstore = new Vue({
       return filtered;
     },
 
+    // Group cart items by class (backendId)
     cartItems() {
       const itemMap = {};
       
+      // Count each class by backendId
       this.cart.forEach(id => {
         if (itemMap[id]) {
           itemMap[id]++;
@@ -184,9 +230,10 @@ var webstore = new Vue({
         }
       });
       
+      // Create array with details
       const items = [];
       for (let id in itemMap) {
-        const product = this.getProduct(parseInt(id));
+        const product = this.getProduct(id); // id is backendId string
         if (product) {
           items.push({
             product: product,
@@ -197,5 +244,35 @@ var webstore = new Vue({
       }
       return items;
     }
+  },
+
+  // Load products from backend when app mounts
+  mounted() {
+    fetch("https://backend-online-classes.onrender.com/api/classes")
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("Failed to load classes");
+        }
+        return response.json();
+      })
+      .then(data => {
+        // Map backend lessons into the structure used by the frontend
+        this.products = data.map((lesson, index) => ({
+          id: index + 1,             // local numeric id for v-for key only
+          backendId: lesson._id,     // real MongoDB id for orders
+          title: lesson.subject || lesson.title || "Class",
+          description: lesson.description || "",
+          price: lesson.price || 0,
+          image: lesson.image || "images/maths.jpg",
+          availableInventory: lesson.spaces ?? 0,
+          rating: lesson.rating || 4,
+          category: lesson.category || lesson.subject || "General",
+          location: lesson.location || "Online"
+        }));
+      })
+      .catch(error => {
+        console.error("Error loading classes:", error);
+        alert("Could not load classes from the server.");
+      });
   }
 });
