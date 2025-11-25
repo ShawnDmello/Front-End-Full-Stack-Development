@@ -8,8 +8,7 @@ var webstore = new Vue({
     isSignedIn: true, // Start as signed in (no sign in page on reload)
     showProduct: true, // true = show classes, false = show checkout
 
-    // products: products, // OLD: local array from products.js
-    products: [], // NEW: will be loaded from backend
+    products: [], // will be loaded from backend
 
     cart: [], // Stores backend class IDs (_id) when booked
     searchQuery: '', // What user types in search box
@@ -27,9 +26,13 @@ var webstore = new Vue({
       address: '',
       city: '',
       zip: '',
-      county: ''
+      county: '',
+      phone: ''      // added phone field (better than using postcode)
     },
     
+    // Last created order (used for optional confirmation)
+    lastOrder: null,
+
     // UK counties list
     counties: {
       'Greater London': 'Greater London',
@@ -49,6 +52,31 @@ var webstore = new Vue({
 
   // Methods - functions
   methods: {
+    // Fetch classes from backend and update products
+    async fetchClasses() {
+      try {
+        const res = await fetch("https://backend-online-classes.onrender.com/api/classes");
+        if (!res.ok) throw new Error("Failed to load classes");
+        const data = await res.json();
+        this.products = data.map((lesson, index) => ({
+          id: index + 1,                 // local numeric id for v-for key only
+          backendId: lesson._id,         // real MongoDB id for orders
+          title: lesson.title || lesson.subject || "Class",
+          description: lesson.description || "",
+          price: lesson.price || 0,
+          image: lesson.image || "images/maths.jpg",
+          availableInventory: lesson.availableInventory ?? 0,
+          rating: lesson.rating || 4,
+          category: lesson.category || lesson.subject || "General",
+          location: lesson.location || "Online"
+        }));
+        console.log("Loaded products from backend:", this.products);
+      } catch (err) {
+        console.error("Error loading classes:", err);
+        alert("Could not load classes from the server.");
+      }
+    },
+
     // Add class to cart (store backendId)
     addToCart(product) {
       this.cart.push(product.backendId);
@@ -100,60 +128,7 @@ var webstore = new Vue({
     removeAllFromCart(productBackendId) {
       this.cart = this.cart.filter(id => id !== productBackendId);
     },
-    
-    // Submit order -> POST to backend
-    submitForm() {
-      if (this.cart.length === 0) {
-        alert('Your cart is empty!');
-        return;
-      }
-      if (!(this.order.firstName && this.order.lastName)) {
-        alert('Please enter your name!');
-        return;
-      }
 
-      const fullName = `${this.order.firstName} ${this.order.lastName}`.trim();
-      // For now, use postcode as phone; you can add a dedicated phone input later
-      const phone = this.order.zip || "0000000000";
-
-      // Cart already holds backend IDs
-      const lessonIDs = this.cart.slice(); // clone
-      // 1 space per entry
-      const spaces = this.cart.map(() => 1);
-
-      const body = {
-        name: fullName,
-        phone: phone,
-        lessonIDs: lessonIDs,
-        spaces: spaces
-      };
-
-      console.log("Sending order body:", body);
-
-      fetch("https://backend-online-classes.onrender.com/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      })
-        .then(response =>
-          response.json().then(data => ({ ok: response.ok, data }))
-        )
-        .then(({ ok, data }) => {
-          console.log("Order response:", data);
-          if (!ok) {
-            alert(`Order failed: ${data.error || 'Unknown error'}`);
-            return;
-          }
-          alert(`Order placed by ${fullName}!`);
-          this.cart = [];
-          this.showProduct = true;
-        })
-        .catch(error => {
-          console.error("Order error:", error);
-          alert("Could not submit order. Please try again.");
-        });
-    },
-    
     // Find class by backend ID
     getProduct(backendId) {
       return this.products.find(p => p.backendId === backendId);
@@ -169,6 +144,76 @@ var webstore = new Vue({
         }
       });
       return total.toFixed(2);
+    },
+
+    // Submit order -> POST to backend with improved error handling and refresh
+    async submitForm() {
+      if (this.cart.length === 0) {
+        alert('Your cart is empty!');
+        return;
+      }
+      if (!(this.order.firstName && this.order.lastName)) {
+        alert('Please enter your name!');
+        return;
+      }
+
+      // Simple phone validation (require at least 7 digits/characters)
+      const phone = (this.order.phone || this.order.zip || "").trim();
+      if (!phone || phone.length < 7) {
+        alert('Please enter a valid phone or postcode (at least 7 characters).');
+        return;
+      }
+
+      const fullName = `${this.order.firstName} ${this.order.lastName}`.trim();
+
+      // Cart already holds backend IDs
+      const lessonIDs = this.cart.slice(); // clone
+      // 1 space per entry
+      const spaces = this.cart.map(() => 1);
+
+      const body = {
+        name: fullName,
+        phone: phone,
+        lessonIDs: lessonIDs,
+        spaces: spaces
+      };
+
+      console.log("Sending order body:", body);
+
+      try {
+        const res = await fetch("https://backend-online-classes.onrender.com/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          // show server error and refresh class data so UI matches server
+          alert(`Order failed: ${data.error || 'Unknown error'}`);
+          await this.fetchClasses();
+          return;
+        }
+
+        // success
+        alert(`Order placed by ${fullName}! Order ID: ${data._id}`);
+        this.lastOrder = data;
+        this.cart = [];
+        this.showProduct = true;
+
+        // refresh classes so inventory displayed is up-to-date
+        await this.fetchClasses();
+      } catch (error) {
+        console.error("Order error:", error);
+        alert("Could not submit order. Please try again.");
+        await this.fetchClasses();
+      }
+    },
+
+    // Utility to remove entire cart and reset
+    clearCart() {
+      this.cart = [];
     }
   },
 
@@ -250,32 +295,7 @@ var webstore = new Vue({
 
   // Load products from backend when app mounts
   mounted() {
-    fetch("https://backend-online-classes.onrender.com/api/classes")
-      .then(response => {
-        if (!response.ok) {
-          throw new Error("Failed to load classes");
-        }
-        return response.json();
-      })
-      .then(data => {
-        // Map backend lessons (your JSON already uses availableInventory)
-        this.products = data.map((lesson, index) => ({
-          id: index + 1,                 // local numeric id for v-for key only
-          backendId: lesson._id,         // real MongoDB id for orders
-          title: lesson.title || lesson.subject || "Class",
-          description: lesson.description || "",
-          price: lesson.price || 0,
-          image: lesson.image || "images/maths.jpg",
-          availableInventory: lesson.availableInventory ?? 0,
-          rating: lesson.rating || 4,
-          category: lesson.category || lesson.subject || "General",
-          location: lesson.location || "Online"
-        }));
-        console.log("Loaded products from backend:", this.products);
-      })
-      .catch(error => {
-        console.error("Error loading classes:", error);
-        alert("Could not load classes from the server.");
-      });
+    // use the fetchClasses helper
+    this.fetchClasses();
   }
 });
