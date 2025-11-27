@@ -1,23 +1,22 @@
-// Simple Vue.js app
+// public/app.js
+// Simple Vue.js app (full file). Uses API_BASE to call the backend on Render.
+const API_BASE = "https://backend-online-classes.onrender.com";
+
 var webstore = new Vue({
   el: '#app',
-  
+
+  // Data - stores all information
   data: {
     sitename: 'Online Classes',
     isSignedIn: true,
-    showProduct: true,
-
-    // LOADED FROM BACKEND
-    products: [],
-
-    cart: [],
+    showProduct: true, // true = show classes, false = show checkout
+    products: [], // will be loaded from backend
+    cart: [], // Stores backend class IDs (_id) when booked
     searchQuery: '',
     sortBy: 'subject',
     sortOrder: 'ascending',
-
     signInUsername: '',
     signInPassword: '',
-
     order: {
       firstName: '',
       lastName: '',
@@ -27,9 +26,7 @@ var webstore = new Vue({
       county: '',
       phone: ''
     },
-
     lastOrder: null,
-
     counties: {
       'Greater London': 'Greater London',
       'Greater Manchester': 'Greater Manchester',
@@ -46,57 +43,61 @@ var webstore = new Vue({
     }
   },
 
+  // Methods - functions
   methods: {
-    // 🔥 FETCH FROM YOUR RENDER BACKEND
+    // Fetch classes from backend and update products
     async fetchClasses() {
       try {
-        const res = await fetch(
-          "https://backend-online-classes.onrender.com/api/classes"
-        );
-
+        const res = await fetch(`${API_BASE}/api/classes`);
         if (!res.ok) throw new Error("Failed to load classes");
         const data = await res.json();
-
         this.products = data.map((lesson, index) => ({
           id: index + 1,
           backendId: lesson._id,
-          title: lesson.title || "Class",
+          title: lesson.title || lesson.subject || "Class",
           description: lesson.description || "",
           price: lesson.price || 0,
-          image: lesson.image || "images/default.jpg",
+          image: lesson.image || "images/maths.jpg",
           availableInventory: lesson.availableInventory ?? 0,
           rating: lesson.rating || 4,
-          category: lesson.category || "General",
+          category: lesson.category || lesson.subject || "General",
           location: lesson.location || "Online"
         }));
-
+        console.log("Loaded products from backend:", this.products);
       } catch (err) {
         console.error("Error loading classes:", err);
         alert("Could not load classes from the server.");
       }
     },
 
+    // Add class to cart (store backendId)
     addToCart(product) {
       this.cart.push(product.backendId);
     },
 
+    // Count how many of same class in cart
     cartCount(backendId) {
       return this.cart.filter(item => item === backendId).length;
     },
 
+    // Check if class can be booked (spots available)
     canAddToCart(product) {
       return product.availableInventory > this.cartCount(product.backendId);
     },
 
+    // Switch between classes page and checkout page, refresh inventory when opening checkout
     async showCheckout() {
       if (!this.showProduct || this.cart.length > 0) {
-        await this.fetchClasses(); 
+        if (this.showProduct) {
+          await this.fetchClasses();
+        }
         this.showProduct = !this.showProduct;
       } else {
         alert('Your cart is empty!');
       }
     },
 
+    // Go back to classes page
     backToClasses() {
       this.showProduct = true;
     },
@@ -110,28 +111,35 @@ var webstore = new Vue({
       }
     },
 
-    removeFromCart(backendId) {
-      const index = this.cart.indexOf(backendId);
-      if (index > -1) this.cart.splice(index, 1);
+    // Remove one class from cart (by backendId)
+    removeFromCart(productBackendId) {
+      const index = this.cart.indexOf(productBackendId);
+      if (index > -1) {
+        this.cart.splice(index, 1);
+      }
     },
 
-    removeAllFromCart(backendId) {
-      this.cart = this.cart.filter(id => id !== backendId);
+    // Remove all of same class from cart (by backendId)
+    removeAllFromCart(productBackendId) {
+      this.cart = this.cart.filter(id => id !== productBackendId);
     },
 
+    // Find class by backend ID
     getProduct(backendId) {
       return this.products.find(p => p.backendId === backendId);
     },
 
+    // Calculate total price
     getCartTotal() {
       let total = 0;
-      this.cart.forEach(backendId => {
-        const product = this.getProduct(backendId);
+      this.cart.forEach(productBackendId => {
+        const product = this.getProduct(productBackendId);
         if (product) total += product.price;
       });
       return total.toFixed(2);
     },
 
+    // Build counts map: backendId -> quantity
     buildCounts() {
       const counts = {};
       this.cart.forEach(id => {
@@ -140,84 +148,97 @@ var webstore = new Vue({
       return counts;
     },
 
-    // 🔥 SUBMIT ORDER TO YOUR RENDER BACKEND
+    // Submit order -> POST to backend with pre-check and robust error handling
     async submitForm() {
       if (this.cart.length === 0) {
-        alert("Your cart is empty!");
+        alert('Your cart is empty!');
         return;
       }
-
       if (!(this.order.firstName && this.order.lastName)) {
-        alert("Please enter your name!");
+        alert('Please enter your name!');
         return;
       }
 
-      const phone = (this.order.phone || "").trim();
+      const phone = (this.order.phone || this.order.zip || "").trim();
       if (!phone || phone.length < 7) {
-        alert("Enter a valid phone number.");
+        alert('Please enter a valid phone or postcode (at least 7 characters).');
         return;
       }
 
+      const fullName = `${this.order.firstName} ${this.order.lastName}`.trim();
+
+      // Ensure up-to-date inventory before sending
       await this.fetchClasses();
+
+      // Build condensed lessonIDs + spaces from cart
       const counts = this.buildCounts();
 
-      // Inventory check
+      // Validate requested quantities against latest inventory
       const insufficient = [];
       for (const id in counts) {
         const requested = counts[id];
         const product = this.getProduct(id);
-        if (!product || product.availableInventory < requested) {
-          insufficient.push(product ? product.title : id);
+        const available = product ? (product.availableInventory ?? 0) : 0;
+        if (!product) {
+          insufficient.push({ id, title: id, requested, available, reason: 'class not found' });
+        } else if (available < requested) {
+          insufficient.push({ id, title: product.title, requested, available, reason: 'not enough spots' });
         }
       }
 
       if (insufficient.length > 0) {
-        alert("Some classes no longer have enough spots.");
+        const msg = insufficient.map(i => `"${i.title}" — requested ${i.requested}, available ${i.available}`).join("\n");
+        alert("Cannot place order because some classes no longer have enough spots:\n" + msg);
+        // Refresh classes to show correct inventory
         await this.fetchClasses();
         return;
       }
 
-      const body = {
-        name: `${this.order.firstName} ${this.order.lastName}`,
-        phone: phone,
-        lessonIDs: Object.keys(counts),
-        spaces: Object.values(counts)
-      };
+      // Prepare payload
+      const lessonIDs = Object.keys(counts);
+      const spaces = lessonIDs.map(id => counts[id]);
+
+      const body = { name: fullName, phone, lessonIDs, spaces };
+      console.log("Sending order body:", body);
 
       try {
-        const res = await fetch(
-          "https://backend-online-classes.onrender.com/api/orders",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body)
-          }
-        );
+        const res = await fetch(`${API_BASE}/api/orders`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
 
         const text = await res.text();
-        const data = JSON.parse(text || "{}");
+        let data = null;
+        try { data = JSON.parse(text); } catch (e) { data = null; }
 
         if (!res.ok) {
-          alert("Order failed: " + (data.error || text));
+          const serverMsg = data ? (data.error || data.message) : text || res.statusText;
+          alert(`Order failed: ${serverMsg}`);
+          await this.fetchClasses();
           return;
         }
 
-        alert("Order placed successfully!");
+        const result = data || {};
+        alert(`Order placed by ${fullName}! Order ID: ${result._id || 'unknown'}`);
+        this.lastOrder = result;
         this.cart = [];
         this.showProduct = true;
         await this.fetchClasses();
-
-      } catch (err) {
-        console.error("Order error:", err);
-        alert("Could not submit order.");
+      } catch (error) {
+        console.error("Order error:", error);
+        alert("Could not submit order. Please try again.");
+        await this.fetchClasses();
       }
     },
 
+    // Utility to remove entire cart and reset
     clearCart() {
       this.cart = [];
     }
   },
 
+  // Computed - values calculated automatically
   computed: {
     cartItemCount() {
       return this.cart.length || 0;
@@ -225,14 +246,15 @@ var webstore = new Vue({
 
     filteredProducts() {
       let filtered = this.products;
-
       if (this.searchQuery) {
-        const q = this.searchQuery.toLowerCase();
-        filtered = filtered.filter(p =>
-          p.title.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q) ||
-          p.location.toLowerCase().includes(q)
-        );
+        const query = this.searchQuery.toLowerCase();
+        filtered = filtered.filter(product => {
+          return (
+            product.title.toLowerCase().includes(query) ||
+            product.category.toLowerCase().includes(query) ||
+            product.location.toLowerCase().includes(query)
+          );
+        });
       }
 
       const isAsc = this.sortOrder === 'ascending';
@@ -259,22 +281,28 @@ var webstore = new Vue({
     },
 
     cartItems() {
-      const map = {};
+      const itemMap = {};
       this.cart.forEach(id => {
-        map[id] = (map[id] || 0) + 1;
+        if (itemMap[id]) itemMap[id]++;
+        else itemMap[id] = 1;
       });
 
-      return Object.keys(map).map(id => {
+      const items = [];
+      for (let id in itemMap) {
         const product = this.getProduct(id);
-        return {
-          product,
-          quantity: map[id],
-          subtotal: (product.price * map[id]).toFixed(2)
-        };
-      });
+        if (product) {
+          items.push({
+            product: product,
+            quantity: itemMap[id],
+            subtotal: (product.price * itemMap[id]).toFixed(2)
+          });
+        }
+      }
+      return items;
     }
   },
 
+  // Load products from backend when app mounts
   mounted() {
     this.fetchClasses();
   }
