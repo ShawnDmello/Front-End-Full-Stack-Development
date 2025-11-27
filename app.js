@@ -1,9 +1,10 @@
 // public/app.js
 // Simple Vue.js app (full file). Uses API_BASE to call the backend on Render.
-const API_BASE = "https://backend-online-classes.onrender.com/api/classes";
+const API_BASE = "https://backend-online-classes.onrender.com";
 
 var webstore = new Vue({
   el: '#app',
+
 
   // Data - stores all information
   data: {
@@ -46,29 +47,29 @@ var webstore = new Vue({
   // Methods - functions
   methods: {
     // Fetch classes from backend and update products
-    async fetchClasses() {
-      try {
-        const res = await fetch(`${API_BASE}/api/classes`);
-        if (!res.ok) throw new Error("Failed to load classes");
-        const data = await res.json();
-        this.products = data.map((lesson, index) => ({
-          id: index + 1,
-          backendId: lesson._id,
-          title: lesson.title || lesson.subject || "Class",
-          description: lesson.description || "",
-          price: lesson.price || 0,
-          image: lesson.image || "images/maths.jpg",
-          availableInventory: lesson.availableInventory ?? 0,
-          rating: lesson.rating || 4,
-          category: lesson.category || lesson.subject || "General",
-          location: lesson.location || "Online"
-        }));
-        console.log("Loaded products from backend:", this.products);
-      } catch (err) {
-        console.error("Error loading classes:", err);
-        alert("Could not load classes from the server.");
-      }
-    },
+   async fetchClasses() {
+  try {
+    const res = await fetch(`${API_BASE}/api/classes`);
+    if (!res.ok) throw new Error("Failed to load classes");
+
+    const data = await res.json();
+    this.products = data.map((lesson, index) => ({
+      id: index + 1,
+      backendId: lesson._id,
+      title: lesson.title || "Class",
+      description: lesson.description || "",
+      price: lesson.price || 0,
+      image: lesson.image || "images/maths.jpg",
+      availableInventory: lesson.availableInventory ?? 0,
+      rating: lesson.rating || 4,
+      category: lesson.category || "General",
+      location: lesson.location || "Online"
+    }));
+  } catch (err) {
+    console.error(err);
+    alert("Could not load classes from the server.");
+  }
+},
 
     // Add class to cart (store backendId)
     addToCart(product) {
@@ -203,10 +204,11 @@ var webstore = new Vue({
 
       try {
         const res = await fetch(`${API_BASE}/api/orders`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body)
-        });
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body)
+});
+
 
         const text = await res.text();
         let data = null;
@@ -307,4 +309,5 @@ var webstore = new Vue({
     this.fetchClasses();
   }
 });
+
 
