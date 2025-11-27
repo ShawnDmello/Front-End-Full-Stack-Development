@@ -1,6 +1,6 @@
 // public/app.js
 // Simple Vue.js app (full file). Uses API_BASE to call the backend on Render.
-const API_BASE = "https://backend-online-classes.onrender.com";
+const API_BASE = "https://backend-online-classes.onrender.com/api/classes";
 
 var webstore = new Vue({
   el: '#app',
@@ -307,3 +307,4 @@ var webstore = new Vue({
     this.fetchClasses();
   }
 });
+
