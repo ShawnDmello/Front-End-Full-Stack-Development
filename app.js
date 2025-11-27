@@ -49,7 +49,9 @@ var webstore = new Vue({
     // Fetch classes from backend and update products
    async fetchClasses() {
   try {
-    const res = await fetch(`${API_BASE}/api/classes`);
+    const res = await fetch(`${API_BASE}/api/classes`, {
+  credentials: 'include'
+});
     if (!res.ok) throw new Error("Failed to load classes");
 
     const data = await res.json();
@@ -200,12 +202,14 @@ var webstore = new Vue({
       const spaces = lessonIDs.map(id => counts[id]);
 
       const body = { name: fullName, phone, lessonIDs, spaces };
-      console.log("Sending order body:", body);
+console.log("Sending order body:", body);
+console.log("Order details - Name:", fullName, "Phone:", phone, "LessonIDs:", lessonIDs, "Spaces:", spaces);
 
       try {
         const res = await fetch(`${API_BASE}/api/orders`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
+  credentials: 'include',
   body: JSON.stringify(body)
 });
 
@@ -309,5 +313,6 @@ var webstore = new Vue({
     this.fetchClasses();
   }
 });
+
 
 
