@@ -55,7 +55,7 @@ var webstore = new Vue({
     // Fetch classes from backend and update products
     async fetchClasses() {
       try {
-        const res = await fetch("https://backend-online-classes.onrender.com/api/classes");
+        const res = await fetch("/api/classes");
         if (!res.ok) throw new Error("Failed to load classes");
         const data = await res.json();
         this.products = data.map((lesson, index) => ({
@@ -93,8 +93,12 @@ var webstore = new Vue({
     },
     
     // Switch between classes page and checkout page
-    showCheckout() {
+    async showCheckout() {
       if (!this.showProduct || this.cart.length > 0) {
+        // If switching to checkout, refresh inventory first to avoid stale data
+        if (this.showProduct) {
+          await this.fetchClasses();
+        }
         this.showProduct = !this.showProduct;
       } else {
         alert('Your cart is empty!');
@@ -146,6 +150,15 @@ var webstore = new Vue({
       return total.toFixed(2);
     },
 
+    // Build counts map: backendId -> quantity
+    buildCounts() {
+      const counts = {};
+      this.cart.forEach(id => {
+        counts[id] = (counts[id] || 0) + 1;
+      });
+      return counts;
+    },
+
     // Submit order -> POST to backend with improved error handling and refresh
     async submitForm() {
       if (this.cart.length === 0) {
@@ -166,10 +179,42 @@ var webstore = new Vue({
 
       const fullName = `${this.order.firstName} ${this.order.lastName}`.trim();
 
-      // Cart already holds backend IDs
-      const lessonIDs = this.cart.slice(); // clone
-      // 1 space per entry
-      const spaces = this.cart.map(() => 1);
+      // Ensure up-to-date inventory before sending
+      await this.fetchClasses();
+
+      // Build condensed lessonIDs + spaces from cart
+      const counts = this.buildCounts();
+
+      // Validate requested quantities against latest inventory
+      const insufficient = [];
+      for (const id in counts) {
+        const requested = counts[id];
+        const product = this.getProduct(id);
+        const available = product ? (product.availableInventory ?? 0) : 0;
+        if (!product) {
+          insufficient.push({ id, title: id, requested, available, reason: 'class not found' });
+        } else if (available < requested) {
+          insufficient.push({ id, title: product.title, requested, available, reason: 'not enough spots' });
+        }
+      }
+
+      if (insufficient.length > 0) {
+        const msg = insufficient.map(i => {
+          return `"${i.title}" — requested ${i.requested}, available ${i.available}`;
+        }).join("\n");
+        alert("Cannot place order because some classes no longer have enough spots:\n" + msg);
+        // Refresh classes to show correct inventory
+        await this.fetchClasses();
+        return;
+      }
+
+      // Build arrays expected by backend
+      const lessonIDs = [];
+      const spaces = [];
+      for (const id in counts) {
+        lessonIDs.push(id);
+        spaces.push(counts[id]);
+      }
 
       const body = {
         name: fullName,
@@ -181,24 +226,29 @@ var webstore = new Vue({
       console.log("Sending order body:", body);
 
       try {
-        const res = await fetch("https://backend-online-classes.onrender.com/api/orders", {
+        const res = await fetch("/api/orders", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body)
         });
 
-        const data = await res.json();
+        // Always read text to surface any non-JSON messages, then try parse
+        const text = await res.text();
+        let data = null;
+        try { data = JSON.parse(text); } catch (e) { data = null; }
 
         if (!res.ok) {
-          // show server error and refresh class data so UI matches server
-          alert(`Order failed: ${data.error || 'Unknown error'}`);
+          const serverMsg = data ? (data.error || data.message) : text || res.statusText;
+          alert(`Order failed: ${serverMsg}`);
+          // refresh classes so UI matches server state
           await this.fetchClasses();
           return;
         }
 
         // success
-        alert(`Order placed by ${fullName}! Order ID: ${data._id}`);
-        this.lastOrder = data;
+        const result = data || {};
+        alert(`Order placed by ${fullName}! Order ID: ${result._id || 'unknown'}`);
+        this.lastOrder = result;
         this.cart = [];
         this.showProduct = true;
 
